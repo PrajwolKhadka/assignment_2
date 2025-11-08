@@ -16,11 +16,7 @@ abstract class BankAccount {
   }
 
   set balance(double amount) {
-    if (amount < 0) {
-      print("Balance must be greater than 0");
-    } else {
-      _balance = amount;
-    }
+    _balance = amount;
   }
 
   //abstract methods
@@ -31,6 +27,20 @@ abstract class BankAccount {
     print("Account Number: $accountNumber");
     print("Account Holder Name: $accountHolderName");
     print("Balance: $_balance");
+  }
+
+  //Extended system:
+  final List<String> _transaction = [];
+
+  void addTransaction(String message) {
+    _transaction.add(message);
+  }
+
+  void showTransactions() {
+    print("Transaction History for Account $accountNumber:");
+    for (String transaction in _transaction) {
+      print(transaction);
+    }
   }
 }
 
@@ -51,6 +61,7 @@ class SavingsAccount extends BankAccount implements InterestBearing {
   @override
   void deposit(double amount) {
     balance += amount;
+    addTransaction("Deposited $amount"); //extension
     print("Deposited $amount to your Saving Account");
   }
 
@@ -64,6 +75,7 @@ class SavingsAccount extends BankAccount implements InterestBearing {
       } else {
         balance -= amount;
         _withdrawalLimit++;
+        addTransaction("Withdrew $amount"); //extension
         print("Withdrew $amount from your Saving Account");
       }
     }
@@ -73,6 +85,7 @@ class SavingsAccount extends BankAccount implements InterestBearing {
   void calculateInterest() {
     double interest = balance * interestRate;
     balance += interest;
+    addTransaction("Interest added $interest"); //extension
     print("Money $interest added as interest to your Account");
   }
 }
@@ -82,23 +95,27 @@ class CheckingAccount extends BankAccount {
   CheckingAccount({
     required super.accountNumber,
     required super.accountHolderName,
-    this.overdraftFee = 500.0,
+    this.overdraftFee = 35.0,
     super.balance,
   });
 
   @override
   void deposit(double amount) {
     balance += amount;
+    addTransaction("Deposited $amount"); //extension
     print("Deposited $amount to your Checking Account");
   }
 
   @override
   void withdraw(double amount) {
-    balance -= amount;
-    if (balance < 0) {
-      balance -= overdraftFee;
+    double newBalance = balance - amount;
+    if (newBalance < 0) {
+      newBalance -= overdraftFee;
+      addTransaction("Overdraft fee of $overdraftFee applied"); //extension
       print("Overdraft fee of $overdraftFee has been applied");
     }
+    balance = newBalance;
+    addTransaction("Withdrawn $amount"); //extension
     print("$amount had be withdrawn");
   }
 }
@@ -115,6 +132,7 @@ class PremiumAccount extends BankAccount implements InterestBearing {
   @override
   void deposit(double amount) {
     balance += amount;
+    addTransaction("Deposited $amount"); //extension
     print("Deposited $amount to your Premium Account");
   }
 
@@ -125,6 +143,7 @@ class PremiumAccount extends BankAccount implements InterestBearing {
       return;
     }
     balance -= amount;
+    addTransaction("Withdrew $amount"); //extension
     print("Withdrew $amount from your Premium Account");
   }
 
@@ -132,6 +151,7 @@ class PremiumAccount extends BankAccount implements InterestBearing {
   void calculateInterest() {
     double interest = balance * _interestRate;
     balance += interest;
+    addTransaction("Interest of $interest added"); //extension
     print("$interest added to your Account");
   }
 }
@@ -171,10 +191,51 @@ class Bank {
     print("Transferred $amount from $fromAccountNumber to $toAccountNumber");
   }
 
+  //Extended system:
+  void applyMonthlyInterest() {
+    for (BankAccount acc in _accounts) {
+      if (acc is InterestBearing) {
+        (acc as InterestBearing).calculateInterest();
+      }
+    }
+  }
+
   void generateReport() {
     print("\n Bank Account Report");
     for (BankAccount acc in _accounts) {
       acc.displayInfo();
+    }
+  }
+}
+
+//Extension as question asks:
+class StudentAccount extends BankAccount {
+  final double maxBalance = 5000.0;
+  StudentAccount({
+    required super.accountNumber,
+    required super.accountHolderName,
+    super.balance = 0.0,
+  });
+
+  @override
+  void deposit(double amount) {
+    if (balance + amount > maxBalance) {
+      print("Maximum balance of $maxBalance reached");
+    } else {
+      balance += amount;
+      addTransaction("Deposited $amount"); //extension
+      print("Deposited $amount to your Account");
+    }
+  }
+
+  @override
+  void withdraw(double amount) {
+    if (amount > balance) {
+      print("Insufficient Balance");
+    } else {
+      balance -= amount;
+      addTransaction("Withdrew $amount"); //extension
+      print("Withdrew $amount successfully");
     }
   }
 }
@@ -187,31 +248,48 @@ void main() {
     accountHolderName: "Hari Bahadur",
     balance: 1000,
   );
+  bank.createAccount(acc1);
+
+  acc1.deposit(500);
+  acc1.withdraw(200);
+  acc1.calculateInterest();
+  acc1.showTransactions();
+
   CheckingAccount acc2 = CheckingAccount(
     accountNumber: "testacc2",
     accountHolderName: "Laxman Thapa",
     balance: 200,
   );
+  bank.createAccount(acc2);
+  acc2.withdraw(300);
+  acc2.deposit(150);
+  acc2.showTransactions();
+
   PremiumAccount acc3 = PremiumAccount(
     accountNumber: "testacc3",
     accountHolderName: "Hariram Shrestha",
     balance: 15000,
   );
-
-  bank.createAccount(acc1);
-  bank.createAccount(acc2);
   bank.createAccount(acc3);
-
-  acc1.deposit(500);
-  acc1.withdraw(200);
-  acc1.calculateInterest();
-
-  acc2.withdraw(300);
-  acc2.deposit(150);
 
   acc3.withdraw(2000);
   acc3.calculateInterest();
+  acc3.showTransactions();
 
   bank.transfer("testacc1", "testacc2", 100);
+
+  // student account extension:
+  StudentAccount acc4 = StudentAccount(
+    accountNumber: "studacc1",
+    accountHolderName: "Sita Bhandari",
+    balance: 3000,
+  );
+  bank.createAccount(acc4);
+  acc4.deposit(2500);
+  acc4.withdraw(1000);
+  acc4.showTransactions();
+
+  bank.applyMonthlyInterest();
+
   bank.generateReport();
 }
